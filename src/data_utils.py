@@ -6,8 +6,10 @@ from torchvision.io.image import read_image
 from torchvision import transforms as T
 from tqdm import tqdm
 
-MEAN =  [0.4837435185909271, 0.4360336363315582, 0.38709205389022827]
-STD =   [0.15184095, 0.14043211, 0.1453041]
+DATASET_PATH = os.path.abspath(os.path.join(__file__, "..", "..", "data", "cats", "Data"))
+
+MEAN =  (0.4837435185909271, 0.4360336363315582, 0.38709205389022827)
+STD =   (0.15184095, 0.14043211, 0.1453041)
 
 class CatDataset(Dataset):
     def __init__(self, data_dir: str, transform=None):
