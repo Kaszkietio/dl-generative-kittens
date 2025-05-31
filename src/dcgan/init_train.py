@@ -11,6 +11,9 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..")))
 
 from data_utils import DATASET_PATH, CatDataset, MEAN, STD
+from utils import set_seed, get_device
+
+CHECKPOINT_DIR = os.path.abspath(os.path.join(DATASET_PATH, "..", "..", "..", "checkpoints", "initial2"))
 
 def train():
     # Parameters
@@ -22,10 +25,14 @@ def train():
     num_epochs = 25
     lr = 0.0002
     beta1 = 0.5
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    set_seed(42)  # Set random seed for reproducibility
+    device = get_device()  # Get the device (GPU or CPU)
     print(f"Using device: {device}")
 
     data_root = DATASET_PATH  # Change to your dataset path
+
+    os.makedirs(CHECKPOINT_DIR, exist_ok=True)  # Ensure checkpoint directory exists
 
     # Data loader
     transform = transforms.Compose([
@@ -150,11 +157,11 @@ def train():
                 print(f"[{epoch}/{num_epochs}][{i}/{len(dataloader)}] Loss_D: {errD_real + errD_fake:.4f} Loss_G: {errG:.4f}")
 
         # Save progress
-        vutils.save_image(fake_images.detach(), f"fake_samples_epoch_{epoch}.png", normalize=True)
+        vutils.save_image(fake_images.detach(), os.path.join(CHECKPOINT_DIR, f"fake_samples_epoch_{epoch}.png"), normalize=True)
 
     # Save models
-    torch.save(netG.state_dict(), "dcgan_generator.pth")
-    torch.save(netD.state_dict(), "dcgan_discriminator.pth")
+    torch.save(netG.state_dict(), os.path.join(CHECKPOINT_DIR, "dcgan_generator.pth"))
+    torch.save(netD.state_dict(), os.path.join(CHECKPOINT_DIR, "dcgan_discriminator.pth"))
 
 if __name__ == "__main__":
     train()

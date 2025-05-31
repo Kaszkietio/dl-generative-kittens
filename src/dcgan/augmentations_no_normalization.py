@@ -19,7 +19,10 @@ from tqdm import tqdm
 
 from dcgan import Generator, Discriminator
 from utils import set_seed, get_device
-from data_utils import DATASET_PATH, CHECKPOINT_PATH, CatDataset
+from data_utils import DATASET_PATH, CHECKPOINT_PATH, CatDataset, MEAN, STD
+
+MEAN_TENSOR = torch.tensor(MEAN, dtype=torch.float32).view(1, 3, 1, 1).cuda()
+STD_TENSOR = torch.tensor(STD, dtype=torch.float32).view(1, 3, 1, 1).cuda()
 
 OPTIMIZERS = {
     "SGD": SGD,
@@ -67,6 +70,7 @@ def train(
         noise = torch.randn(b_size, g.nz, 1, 1, device=input.device)
         fake_images = g(noise)
         labels.fill_(fake_label)
+        # fake_images = fake_images * STD_TENSOR + MEAN_TENSOR  # Unnormalize
         output = d(torch.detach(fake_images)).view(-1)
         err_f_fake = criterion(output, labels)
         err_f_fake.backward()
@@ -78,6 +82,7 @@ def train(
         opt_g.zero_grad()
         noise = torch.randn(b_size, g.nz, 1, 1, device=input.device)
         fake_images = g(noise)
+        # fake_images = fake_images * STD_TENSOR + MEAN_TENSOR  # Unnormalize
         labels.fill_(real_label)  # Trick D
         output = d(fake_images).view(-1)
         err_g = criterion(output, labels)
@@ -124,6 +129,7 @@ def evaluate(
 ):
     with torch.no_grad():
         fake_images = generator(fixed_noise)
+        # fake_images = fake_images * STD_TENSOR + MEAN_TENSOR # Unnormalize
         vutils.save_image(fake_images.detach(),
                           os.path.join(checkpoint_dir, f"fake_samples_epoch_{epoch}.png"), normalize=True)
 
@@ -151,11 +157,17 @@ def main(config: dict):
     with open(os.path.join(checkpoint, "config.json"), "w") as f:
         f.write(json.dumps(config))
 
+    image_size = int(config["image_size"]) if "image_size" in config else 64
     batch_size = int(config["batch_size"]) if "batch_size" in config else 256
     print("Batch size:", batch_size)
     data_path = os.path.abspath(config["data_path"]) if "data_path" in config else DATASET_PATH
     print("Data path:", data_path)
-    dataset = CatDataset(data_path)
+    dataset = CatDataset(data_path, transform=T.Compose([
+        T.AutoAugment(policy=T.AutoAugmentPolicy.IMAGENET),
+        T.Resize(int(image_size * 1.15)),
+        T.RandomCrop(image_size),
+        T.ConvertImageDtype(torch.float),
+    ]))
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 
     model_params = config["model_params"]
@@ -263,37 +275,37 @@ def main(config: dict):
             scheduler_g.step()
 
 
-            # Saving checkpoint
-            if epoch >= warmup_epochs and min_delta < torch.abs(best_loss["discriminator"] - mean_D_loss):
-                print("Saving best models")
-                best_models["discriminator"] = discriminator.state_dict()
-                artifact_path = f"discriminator_checkpoint_epoch_{epoch}"
-                mlflow.pytorch.log_model(discriminator, artifact_path=artifact_path)
+            # # Saving checkpoint
+            # if epoch >= warmup_epochs and min_delta < best_loss["discriminator"] - mean_D_loss:
+            #     print("Saving best models")
+            #     best_models["discriminator"] = discriminator.state_dict()
+            #     artifact_path = f"discriminator_checkpoint_epoch_{epoch}"
+            #     mlflow.pytorch.log_model(discriminator, artifact_path=artifact_path)
 
-                best_models["generator"] = generator.state_dict()
-                artifact_path = f"generator_checkpoint_epoch_{epoch}"
-                mlflow.pytorch.log_model(generator, artifact_path=artifact_path)
+            #     best_models["generator"] = generator.state_dict()
+            #     artifact_path = f"generator_checkpoint_epoch_{epoch}"
+            #     mlflow.pytorch.log_model(generator, artifact_path=artifact_path)
 
-            # Early stopping
-            if min_delta < torch.abs(best_loss["discriminator"] - mean_D_loss):
-                best_loss_epoch = epoch
-                best_loss["discriminator"] = mean_D_loss
-                best_loss["generator"] = mean_G_loss
-            elif epoch - best_loss_epoch >= patience:
-                print("Early stopping!")
-                break
+            # # Early stopping
+            # if min_delta < best_loss["discriminator"] - mean_D_loss:
+            #     best_loss_epoch = epoch
+            #     best_loss["discriminator"] = mean_D_loss
+            #     best_loss["generator"] = mean_G_loss
+            # elif epoch - best_loss_epoch >= patience:
+            #     print("Early stopping!")
+            #     break
 
 
         X = next(iter(loader))
         X = X.cuda()
         signature_d = mlflow.models.infer_signature(X.detach().cpu().numpy(), discriminator(X).detach().cpu().numpy())
         artifact_path_d = f"d_final_epoch_{epoch}"
-        discriminator.load_state_dict(best_models["discriminator"])
+        # discriminator.load_state_dict(best_models["discriminator"])
         mlflow.pytorch.log_model(discriminator, artifact_path_d, signature=signature_d)
 
         X = torch.randn(batch_size, generator.nz, 1, 1).cuda()
         artifact_path_g = f"g_final_epoch_{epoch}"
-        generator.load_state_dict(best_models["generator"])
+        # generator.load_state_dict(best_models["generator"])
         signature_g = mlflow.models.infer_signature(X.detach().cpu().numpy(), generator(X).detach().cpu().numpy())
         mlflow.pytorch.log_model(generator, artifact_path_g, signature=signature_g)
 

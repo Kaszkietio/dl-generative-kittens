@@ -9,6 +9,8 @@ class Generator(nn.Module):
             ngf (int): Number of generator feature maps.
         """
         super(Generator, self).__init__()
+        self.nz = nz
+        self.ngf = ngf
         self.main = nn.Sequential(
             nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 8),
@@ -29,6 +31,7 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(ngf, 3, 4, 2, 1, bias=False),
             nn.Sigmoid()
         )
+        self.apply(weights_init)
 
     def forward(self, input):
         return self.main(input)
@@ -42,6 +45,7 @@ class Discriminator(nn.Module):
             ndf (int): Number of discriminator feature maps.
         """
         super(Discriminator, self).__init__()
+        self.ndf = ndf
         self.main = nn.Sequential(
             nn.Conv2d(3, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
@@ -61,6 +65,16 @@ class Discriminator(nn.Module):
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
+        self.apply(weights_init)
 
     def forward(self, input):
         return self.main(input)
+
+
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        nn.init.normal_(m.weight.data, 0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        nn.init.normal_(m.weight.data, 1.0, 0.02)
+        nn.init.constant_(m.bias.data, 0)
