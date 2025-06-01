@@ -17,7 +17,7 @@ from torchvision.transforms import v2 as T
 from torchvision import utils as vutils
 from tqdm import tqdm
 
-from dcgan import Generator, Discriminator
+from dcgan2 import Generator, Discriminator
 from utils import set_seed, get_device
 from data_utils import DATASET_PATH, CHECKPOINT_PATH, CatDataset, MEAN, STD
 
@@ -71,8 +71,10 @@ def train(
         # Generate fake images
         noise = torch.randn(b_size, g.nz, 1, 1, device=input.device)
         fake_images = g(noise)
+        # print(f"Fake images shape: {fake_images.shape}")
         labels.fill_(fake_label)
         output = d(torch.detach(fake_images)).view(-1)
+        # print(f"Output shape: {output.shape}")
         err_f_fake = criterion(output, labels)
         err_f_fake.backward()
         err_d = err_d_real + err_f_fake
@@ -163,11 +165,13 @@ def main(config: dict):
     data_path = os.path.abspath(config["data_path"]) if "data_path" in config else DATASET_PATH
     print("Data path:", data_path)
     dataset = CatDataset(data_path, transform=T.Compose([
-        T.AutoAugment(policy=T.AutoAugmentPolicy.IMAGENET),
+        # T.AutoAugment(policy=T.AutoAugmentPolicy.IMAGENET),
+        # T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+        T.RandomHorizontalFlip(),
         T.Resize(int(image_size * 1.15)),
         T.RandomCrop(image_size),
         T.ConvertImageDtype(torch.float),
-        T.Normalize(mean=MEAN, std=STD),
+        # T.Normalize(mean=MEAN, std=STD),
     ]))
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 
@@ -254,8 +258,8 @@ def main(config: dict):
                                                         opt_d,
                                                         opt_g,
                                                         criterion,
-                                                        epoch,
-                                                        epochs)
+                                                        epoch=epoch,
+                                                        num_epochs=epochs)
 
             print("Processing validation")
             # discriminator.eval()

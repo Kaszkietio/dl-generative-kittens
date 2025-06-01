@@ -1,9 +1,10 @@
 {
-  "experiment_name": "DCGAN_smooth_labels",
+  "experiment_name": "DCGAN_spectral_norm_2",
   "seed": 2,
   "model_params": {
     "discriminator": {
-      "ndf": 64
+      "ndf": 64,
+      "spectral_norm_enabled": true
     },
     "generator": {
       "nz": 100,
@@ -19,7 +20,7 @@
         0.999
       ],
       "lr": 2e-4,
-      "weight_decay": 0.01
+      "weight_decay": 0.00
       }
     },
     "generator": {
@@ -30,28 +31,30 @@
         0.999
       ],
       "lr": 2e-4,
-      "weight_decay": 0.01
+      "weight_decay": 0.00
       }
     }
   },
   "scheduler_params": {
     "discriminator": {
-      "name": "ExponentialLR",
+      "name": "CosineAnnealingLR",
       "params": {
-        "gamma": 0.9
+        "T_max": 25,
+        "eta_min": 0.0
       }
     },
     "generator": {
-      "name": "ExponentialLR",
+      "name": "CosineAnnealingLR",
       "params": {
-        "gamma": 0.9
+        "T_max": 25,
+        "eta_min": 0.0
       }
     }
   },
-  "epochs": 25,
+  "epochs": 30,
   "warmup_epochs": 5,
   "batch_size": 128,
-  "checkpoint_folder": "./checkpoints/DCGAN_smooth_labels",
+  "checkpoint_folder": "./checkpoints/DCGAN_spectral_norm_2",
   "image_size": 64,
   "early_stopping": {
     "patience": 10,
