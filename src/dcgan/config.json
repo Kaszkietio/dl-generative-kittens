@@ -1,0 +1,59 @@
+{
+  "experiment_name": "DCGAN_spectral_norm_2",
+  "seed": 2,
+  "model_params": {
+    "discriminator": {
+      "ndf": 64,
+      "spectral_norm_enabled": true
+    },
+    "generator": {
+      "nz": 100,
+      "ngf": 64
+    }
+  },
+  "optimizer_params": {
+    "discriminator": {
+      "name": "AdamW",
+      "params": {
+      "betas": [
+        0.5,
+        0.999
+      ],
+      "lr": 2e-4,
+      "weight_decay": 0.00
+      }
+    },
+    "generator": {
+      "name": "AdamW",
+      "params": {
+      "betas": [
+        0.5,
+        0.999
+      ],
+      "lr": 2e-4,
+      "weight_decay": 0.00
+      }
+    }
+  },
+  "scheduler_params": {
+    "discriminator": {
+      "name": "CosineAnnealingLR",
+      "params": {
+        "T_max": 25,
+        "eta_min": 0.0
+      }
+    },
+    "generator": {
+      "name": "CosineAnnealingLR",
+      "params": {
+        "T_max": 25,
+        "eta_min": 0.0
+      }
+    }
+  },
+  "epochs": 30,
+  "warmup_epochs": 5,
+  "batch_size": 128,
+  "checkpoint_folder": "./checkpoints/DCGAN_spectral_norm_2",
+  "image_size": 64
+}

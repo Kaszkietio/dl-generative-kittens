@@ -1,4 +1,8 @@
 data/
+**/Data/
 .venv
 __pycache__
 notebooks/sandbox.ipynb
+checkpoints
+mlruns
+mlartifacts

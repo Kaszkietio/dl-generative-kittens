@@ -1,13 +1,14 @@
 import os
 import torch
 from torch.utils.data import DataLoader, Dataset
-from torchvision.datasets import ImageFolder
 from torchvision.io.image import read_image
 from torchvision import transforms as T
-from tqdm import tqdm
 
-MEAN =  [0.4837435185909271, 0.4360336363315582, 0.38709205389022827]
-STD =   [0.15184095, 0.14043211, 0.1453041]
+DATASET_PATH = os.path.abspath(os.path.join(__file__, "..", "..", "data", "cats", "Data"))
+CHECKPOINT_PATH = os.path.abspath(os.path.join(__file__, "..", "..", "checkpoints"))
+
+MEAN =  (0.4837435185909271, 0.4360336363315582, 0.38709205389022827)
+STD =   (0.15184095, 0.14043211, 0.1453041)
 
 class CatDataset(Dataset):
     def __init__(self, data_dir: str, transform=None):
@@ -53,6 +54,7 @@ class MeanStdAggregator:
 
 if __name__ == "__main__":
     import argparse
+    from tqdm import tqdm
 
     parser = argparse.ArgumentParser(description="Calculate dataset mean and std")
     parser.add_argument('--data_dir', required=True, type=str, help='Path to the dataset directory')

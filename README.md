@@ -5,3 +5,5 @@ Exploration of generative models for kittens based on AnnikaV9 'Cat Dataset' (ht
 ```bash
 curl -L -o ./data/cat-dataset.zip https://www.kaggle.com/api/v1/datasets/download/borhanitrash/cat-dataset
 ```
+
+Potential architecture: StyleGAN2-Ada
