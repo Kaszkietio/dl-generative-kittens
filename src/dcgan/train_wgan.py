@@ -5,18 +5,14 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..")))
 
 import mlflow
 import mlflow.pytorch
-import numpy as np
 import torch
 from torch import nn
-from torch.optim import SGD, AdamW
+from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, ReduceLROnPlateau, ExponentialLR
 from torch.utils.data import DataLoader
-import torch.nn.functional as F
-from torchvision.datasets import ImageFolder
 import torchvision.models
 from torchvision.transforms import v2 as T
 from torchvision import utils as vutils
-from tqdm import tqdm
 
 from wgan import Generator, Critic, compute_gradient_penalty, calculate_fid
 from utils import set_seed, get_device
@@ -48,13 +44,6 @@ def train(
 ):
     arr_C_loss = [float("inf")]
     arr_G_loss = [float("inf")]
-    # arr_D_x = [float("inf")]
-    # arr_D_G_z1 = [float("inf")]
-    # arr_D_G_z2 = [float("inf")]
-    # batch_sizes = []
-
-    real_label = 1.0
-    fake_label = 0.0
 
     for i, real_imgs in enumerate(ds):
         real_imgs = real_imgs.cuda()
@@ -84,32 +73,19 @@ def train(
 
         arr_G_loss.append(loss_G.item())
         arr_C_loss.append(loss_C.item())
-        # arr_D_x.append(D_x)
-        # arr_D_G_z1.append(D_G_z1)
-        # arr_D_G_z2.append(D_G_z2)
-        # batch_sizes.append(b_size)
 
         if i % 50 == 0:
             print(f"[{epoch}/{num_epochs}][{i}/{len(ds)}]", end=' ')
             print(f"G_loss: {arr_G_loss[-1]:.4f}({(arr_G_loss[-1] - arr_G_loss[-2]):.2e})", end=' ')
             print(f"C_loss: {arr_C_loss[-1]:.4f}({(arr_C_loss[-1] - arr_C_loss[-2]):.2e})", end=' ')
-            # print(f"D_x: {arr_D_x[-1]:.4f}({(arr_D_x[-1] - arr_D_x[-2]):.2e})", end=' ')
-            # print(f"D_G_z1: {arr_D_G_z1[-1]:.4f}({(arr_D_G_z1[-1] - arr_D_G_z1[-2]):.2e})", end=' ')
-            # print(f"D_G_z2: {arr_D_G_z2[-1]:.4f}({(arr_D_G_z2[-1] - arr_D_G_z2[-2]):.2e})", end=' ')
             print()
 
 
             mlflow.log_metric("G_loss", arr_G_loss[-1], step=len(ds)*epoch + i)
             mlflow.log_metric("C_loss", arr_C_loss[-1], step=len(ds)*epoch + i)
-            # mlflow.log_metric("D_x", arr_D_x[-1], step=len(ds)*epoch + i)
-            # mlflow.log_metric("D_G_z1", arr_D_G_z1[-1], step=len(ds)*epoch + i)
-            # mlflow.log_metric("D_G_z2", arr_D_G_z2[-1], step=len(ds)*epoch + i)
 
     return torch.mean(torch.tensor(arr_G_loss)), \
-            torch.mean(torch.tensor(arr_C_loss)),
-            # torch.mean(torch.tensor(arr_D_x)),    \
-            # torch.mean(torch.tensor(arr_D_G_z1)), \
-            # torch.mean(torch.tensor(arr_D_G_z2))
+            torch.mean(torch.tensor(arr_C_loss))
 
 
 
@@ -124,7 +100,6 @@ def evaluate(
 ):
     with torch.no_grad():
         fake_images = G(fixed_noise)
-        # fake_images = fake_images * STD_TENSOR + MEAN_TENSOR  # Unnormalize
         vutils.save_image(fake_images.detach(),
                           os.path.join(checkpoint_dir, f"fake_samples_epoch_{epoch}.png"), normalize=True)
 
@@ -166,14 +141,8 @@ def main(config: dict):
     data_path = os.path.abspath(config["data_path"]) if "data_path" in config else DATASET_PATH
     print("Data path:", data_path)
     dataset = CatDataset(data_path, transform=T.Compose([
-        # T.AutoAugment(policy=T.AutoAugmentPolicy.IMAGENET),
-        # T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-        # T.RandomHorizontalFlip(),
-        # T.Resize(int(image_size * 1.15)),
-        # T.RandomCrop(image_size),
         T.Resize(image_size),
         T.ConvertImageDtype(torch.float),
-        # T.Normalize(mean=MEAN, std=STD),
     ]))
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 
@@ -218,23 +187,6 @@ def main(config: dict):
     print("Number of critic updates per generator update:", n_critic)
     lambda_gp = float(config["lambda_gp"]) if "lambda_gp" in config else 10.0
     print("Lambda for gradient penalty:", lambda_gp)
-
-    best_models = {
-        "critic": C.state_dict(),
-        "generator": G.state_dict()
-    }
-    best_loss = {
-        "critic": float("inf"),
-        "generator": float("inf")
-    }
-    best_loss_epoch = 0
-    previous = {
-        "mean_G_loss": float("inf"),
-        "mean_D_loss": float("inf"),
-        "mean_D_x": float("inf"),
-        "mean_D_G_z1": float("inf"),
-        "mean_D_G_z2": float("inf")
-    }
 
     feature_extractor = torchvision.models.inception_v3(pretrained=True).cuda()
     feature_extractor.fc = nn.Identity()
@@ -292,37 +244,14 @@ def main(config: dict):
             scheduler_g.step()
 
 
-            # # Saving checkpoint
-            # if epoch >= warmup_epochs and min_delta < best_loss["discriminator"] - mean_D_loss:
-            #     print("Saving best models")
-            #     best_models["discriminator"] = discriminator.state_dict()
-            #     artifact_path = f"discriminator_checkpoint_epoch_{epoch}"
-            #     mlflow.pytorch.log_model(discriminator, artifact_path=artifact_path)
-
-            #     best_models["generator"] = generator.state_dict()
-            #     artifact_path = f"generator_checkpoint_epoch_{epoch}"
-            #     mlflow.pytorch.log_model(generator, artifact_path=artifact_path)
-
-            # # Early stopping
-            # if min_delta < best_loss["discriminator"] - mean_D_loss:
-            #     best_loss_epoch = epoch
-            #     best_loss["discriminator"] = mean_D_loss
-            #     best_loss["generator"] = mean_G_loss
-            # elif epoch - best_loss_epoch >= patience:
-            #     print("Early stopping!")
-            #     break
-
-
         X = next(iter(loader))
         X = X.cuda()
         signature_c = mlflow.models.infer_signature(X.detach().cpu().numpy(), C(X).detach().cpu().numpy())
         artifact_path_c = f"c_final_epoch_{epoch}"
-        # discriminator.load_state_dict(best_models["discriminator"])
         mlflow.pytorch.log_model(C, artifact_path_c, signature=signature_c)
 
         X = torch.randn(batch_size, G.nz, 1, 1).cuda()
         artifact_path_g = f"g_final_epoch_{epoch}"
-        # generator.load_state_dict(best_models["generator"])
         signature_g = mlflow.models.infer_signature(X.detach().cpu().numpy(), G(X).detach().cpu().numpy())
         mlflow.pytorch.log_model(G, artifact_path_g, signature=signature_g)
 

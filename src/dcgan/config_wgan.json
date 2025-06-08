@@ -57,9 +57,5 @@
   "warmup_epochs": 5,
   "batch_size": 128,
   "checkpoint_folder": "./checkpoints/deep_WGAN_augment",
-  "image_size": 64,
-  "early_stopping": {
-    "patience": 10,
-    "min_delta": 0.001
-  }
+  "image_size": 64
 }

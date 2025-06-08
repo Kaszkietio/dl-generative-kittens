@@ -5,18 +5,14 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..")))
 
 import mlflow
 import mlflow.pytorch
-import numpy as np
 import torch
 from torch import nn
-from torch.optim import SGD, AdamW
+from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, ReduceLROnPlateau, ExponentialLR
 from torch.utils.data import DataLoader
-import torch.nn.functional as F
-from torchvision.datasets import ImageFolder
 import torchvision.models
 from torchvision.transforms import v2 as T
 from torchvision import utils as vutils
-from tqdm import tqdm
 
 from wgan import Generator, Critic, compute_gradient_penalty, calculate_fid
 from augment_pipeline import AugmentPipeline
