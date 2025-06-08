@@ -18,12 +18,30 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(nz, ngf * 16, 4, 2, 1),
             nn.BatchNorm2d(ngf * 16),
             nn.ReLU(True),
+            nn.Conv2d(ngf * 16, ngf * 16, 4, 1, 2),
+            nn.BatchNorm2d(ngf * 16),
+            nn.ReLU(True),
+            nn.Conv2d(ngf * 16, ngf * 16, 4, 1, 1),
+            nn.BatchNorm2d(ngf * 16),
+            nn.ReLU(True),
 
             nn.ConvTranspose2d(ngf * 16, ngf * 8, 4, 2, 1),
             nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
+            nn.Conv2d(ngf * 8, ngf * 8, 4, 1, 2),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            nn.Conv2d(ngf * 8, ngf * 8, 4, 1, 1),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
 
             nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+            nn.Conv2d(ngf * 4, ngf * 4, 4, 1, 2),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+            nn.Conv2d(ngf * 4, ngf * 4, 4, 1, 1),
             nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
 
@@ -42,6 +60,13 @@ class Generator(nn.Module):
 
     def forward(self, input):
         return self.main(input)
+    # def forward(self, input):
+    #     x = input
+    #     print(f"Input shape: {x.shape}")
+    #     for layer in self.main:
+    #         x = layer(x)
+    #         print(f"After {layer.__class__.__name__} shape: {x.shape}")
+    #     return x
 
 class Critic(nn.Module):
     def __init__(self, ndf: int):
@@ -53,23 +78,43 @@ class Critic(nn.Module):
         super(Critic, self).__init__()
         self.ndf = ndf
         self.main = self.main = nn.Sequential(
-            nn.Conv2d(3, ndf, 4, 2, 1),
+            nn.Conv2d(3, ndf, 4, 2, 1), # (3, 64, 64) -> (ndf, 32, 32)
             nn.LeakyReLU(0.2, inplace=True),
 
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1),
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1), # (ndf, 32, 32) -> (ndf * 2, 16, 16)
             nn.LeakyReLU(0.2, inplace=True),
 
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1),
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 1, 2), # (ndf * 2, 16, 16) -> (ndf * 4, 8, 8)
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ndf * 4, ndf * 4, 4, 2, 1), #
             nn.LeakyReLU(0.2, inplace=True),
 
-            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1),
+            nn.Conv2d(ndf * 4, ndf * 8, 4, 1, 2), # (ndf * 4, 5, 5) -> (ndf * 8, 3, 3)
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ndf * 8, ndf * 8, 4, 1, 2), #
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ndf * 8, ndf * 8, 4, 2, 1),
             nn.LeakyReLU(0.2, inplace=True),
 
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0),
+            nn.Conv2d(ndf * 8, ndf * 16, 4, 1, 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ndf * 16, ndf * 16, 4, 1, 3),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ndf * 16, ndf * 16, 4, 2, 1),
+            nn.LeakyReLU(0.2, inplace=True),
+
+            nn.Conv2d(ndf * 16, 1, 4, 1, 0),
         )
 
         self.apply(weights_init)
 
+    # def forward(self, input):
+    #     x = input
+    #     print(f"Input shape: {x.shape}")
+    #     for layer in self.main:
+    #         x = layer(x)
+    #         print(f"After {layer.__class__.__name__} shape: {x.shape}")
+    #     return x
     def forward(self, input):
         return self.main(input)
 
@@ -138,3 +183,29 @@ def calculate_fid(real_images: torch.Tensor, fake_images: torch.Tensor, feature_
         covmean = covmean.real
     fid = diff.dot(diff) + np.trace(sigma_real + sigma_gen - 2 * covmean)
     return fid
+
+if __name__ == "__main__":
+    # Example usage
+    nz = 100  # Latent vector size
+    ngf = 64  # Generator feature maps
+    ndf = 64  # Discriminator feature maps
+
+    generator = Generator(nz, ngf)
+    critic = Critic(ndf)
+
+    # Create dummy input
+    z = torch.randn(16, nz, 1, 1)  # Batch of 16 latent vectors
+    print("Generator input shape:", z.shape)
+    fake_images = generator(z)
+    print("Generated images shape:", fake_images.shape)
+
+    real_images = torch.randn(16, 3, 64, 64)  # Batch of 16 real images
+
+    # Forward pass through the critic
+    print("Critic real input shape:", real_images.shape)
+    critic_output = critic(real_images)
+    print("Critic real output shape:", critic_output.shape)
+
+    print("Critic real input shape:", fake_images.shape)
+    critic_output = critic(fake_images)
+    print("Critic real output shape:", critic_output.shape)

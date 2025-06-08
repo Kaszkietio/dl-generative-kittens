@@ -1,0 +1,43 @@
+{
+    "plots": [
+        {
+            "models": [
+                {
+                    "name": "WGAN",
+                    "run_id": "6262b065af2647beb7c0eb10818b7454"
+                }
+            ],
+            "output_path": "./plots/WGAN.png"
+        },
+        {
+            "models": [
+                {
+                    "name": "WGAN_augment",
+                    "run_id": "76b393ae61ef4489b39a6a6117b35d67"
+                }
+            ],
+            "output_path": "./plots/WGAN_augmentation.png"
+        },
+        {
+            "models": [
+                {
+                    "name": "DCGAN_augmentation",
+                    "run_id": "78420427e39647878f9bca28f4ab5764"
+                }
+            ],
+            "output_path": "./plots/DCGAN_augmentation.png"
+        },
+        {
+            "models": [
+                {
+                    "name": "DCGAN_spectral_norm",
+                    "run_id": "ad1d28335d674d20a12234ba753957f9"
+                }
+            ],
+            "output_path": "./plots/DCGAN_spectral_norm.png"
+        }
+
+
+    ],
+    "mlflow_tracking_uri": "http://localhost:3113"
+}
