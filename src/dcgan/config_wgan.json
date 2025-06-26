@@ -1,0 +1,61 @@
+{
+  "experiment_name": "deep_WGAN_augment",
+  "seed": 2,
+  "model_params": {
+    "critic": {
+      "ndf": 64
+    },
+    "generator": {
+      "nz": 100,
+      "ngf": 64
+    }
+  },
+  "optimizer_params": {
+    "critic": {
+      "name": "AdamW",
+      "params": {
+      "betas": [
+        0.0,
+        0.9
+      ],
+      "lr": 2.5e-4,
+      "weight_decay": 1e-3
+      }
+    },
+    "generator": {
+      "name": "AdamW",
+      "params": {
+      "betas": [
+        0.0,
+        0.9
+      ],
+      "lr": 2.5e-4,
+      "weight_decay": 1e-3
+      }
+    }
+  },
+  "scheduler_params": {
+    "critic": {
+      "name": "CosineAnnealingLR",
+      "params": {
+        "T_max": 25,
+        "eta_min": 0.0
+      }
+    },
+    "generator": {
+      "name": "CosineAnnealingLR",
+      "params": {
+        "T_max": 25,
+        "eta_min": 0.0
+      }
+    }
+  },
+  "augment_pipeline": {
+    "p": 0.5
+  },
+  "epochs": 50,
+  "warmup_epochs": 5,
+  "batch_size": 128,
+  "checkpoint_folder": "./checkpoints/deep_WGAN_augment",
+  "image_size": 64
+}

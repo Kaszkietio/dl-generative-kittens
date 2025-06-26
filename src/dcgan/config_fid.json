@@ -1,0 +1,26 @@
+{
+    "output_path": "./metrics/fid",
+    "batch_size": 128,
+    "models": [
+        {
+            "model_name": "DCGAN_initial",
+            "model_path": "./checkpoints/!initial/dcgan_generator.pth"
+        },
+        {
+            "model_name": "DCGAN_augmentations_no_normalization",
+            "model_path": "mlflow-artifacts:/303982249129133621/78420427e39647878f9bca28f4ab5764/artifacts/g_final_epoch_24"
+        },
+        {
+            "model_name": "DCGAN_spectral_norm",
+            "model_path": "mlflow-artifacts:/444113968381748654/ad1d28335d674d20a12234ba753957f9/artifacts/g_final_epoch_29"
+        },
+        {
+            "model_name": "WGAN",
+            "model_path": "mlflow-artifacts:/219578572555187427/6262b065af2647beb7c0eb10818b7454/artifacts/g_final_epoch_19"
+        },
+        {
+            "model_name": "WGAN_augment",
+            "model_path": "mlflow-artifacts:/657022938599235334/76b393ae61ef4489b39a6a6117b35d67/artifacts/g_final_epoch_24"
+        }
+    ]
+}
